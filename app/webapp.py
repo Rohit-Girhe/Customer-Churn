@@ -1,9 +1,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import pickle
+import os
+import numpy as np
 
 # ==========================================
-# 1. PAGE CONFIGURATION
+# 1. PAGE CONFIGURATION & CACHING
 # ==========================================
 st.set_page_config(page_title="Telecom Churn Dashboard", page_icon="📊", layout="wide")
 
@@ -11,6 +14,25 @@ st.set_page_config(page_title="Telecom Churn Dashboard", page_icon="📊", layou
 def load_data():
     file_path = r"D:\Customer-Churn\Dataset\churn_dataset_cleaned.csv"
     return pd.read_csv(file_path)
+
+# Load the Saved Models and Scaler (Cached so it only loads once)
+@st.cache_resource
+def load_models():
+    save_dir = r"D:\Customer-Churn\Models"
+    
+    with open(os.path.join(save_dir, 'churn_model_gbdt.pkl'), 'rb') as f:
+        gbdt_model = pickle.load(f)
+        
+    with open(os.path.join(save_dir, 'churn_model_lr.pkl'), 'rb') as f:
+        lr_model = pickle.load(f)
+        
+    with open(os.path.join(save_dir, 'scaler.pkl'), 'rb') as f:
+        scaler = pickle.load(f)
+        
+    with open(os.path.join(save_dir, 'model_columns.pkl'), 'rb') as f:
+        model_columns = pickle.load(f)
+        
+    return gbdt_model, lr_model, scaler, model_columns
 
 df = load_data()
 
@@ -25,7 +47,7 @@ st.sidebar.markdown("Select a phase of the analysis to explore:")
 
 analysis_phase = st.sidebar.radio(
     "Go to:",
-    ["Dataset Overview", "Univariate Analysis", "Bivariate Analysis", "Multivariate Analysis"]
+    ["Dataset Overview", "Univariate Analysis", "Bivariate Analysis", "Multivariate Analysis", "🔮 Churn Prediction Model"]
 )
 st.sidebar.markdown("---")
 
@@ -107,7 +129,6 @@ elif analysis_phase == "Bivariate Analysis":
         fig = px.histogram(df, x=cat_feat1, color=cat_feat2, barmode='group', text_auto=True, title=f"{cat_feat1} vs {cat_feat2}")
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- DYNAMIC CAT VS CAT INSIGHTS ---
         if cat_feat1 == 'Contract' and cat_feat2 == 'Churn':
             st.error("**🚨 The Contract Trap:** Month-to-month users have an alarming ~42.7% churn rate. **Recommendation:** Offer 'first month free' promotions to upgrade users to 1-Year or 2-Year contracts.")
         elif cat_feat1 == 'PaymentMethod' and cat_feat2 == 'Churn':
@@ -123,7 +144,6 @@ elif analysis_phase == "Bivariate Analysis":
         fig = px.box(df, x=cat_feat, y=num_feat, color=cat_feat, title=f"{num_feat} grouped by {cat_feat}")
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- DYNAMIC CAT VS NUM INSIGHTS ---
         if cat_feat == 'Churn' and num_feat == 'tenure':
             st.success("**🎯 Retention Strategy:** The median tenure for churners is roughly 10 months. **Recommendation:** Implement a 'First-Year Loyalty Program' with milestone rewards to push them past the 12-month danger zone.")
         elif cat_feat == 'InternetService' and num_feat == 'MonthlyCharges':
@@ -138,7 +158,6 @@ elif analysis_phase == "Bivariate Analysis":
         fig = px.scatter(df, x=num_feat1, y=num_feat2, color=color_target, opacity=0.6, title=f"{num_feat1} vs {num_feat2}")
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- DYNAMIC NUM VS NUM INSIGHTS ---
         if num_feat1 == 'tenure' and num_feat2 == 'MonthlyCharges':
             st.error("**🚨 High-Risk Profile:** Notice the concentration of Churn (red dots) in the top-left quadrant. Our highest flight risk is newly acquired customers (low tenure) on expensive plans (high charges).")
 
@@ -159,4 +178,110 @@ elif analysis_phase == "Multivariate Analysis":
     
     fig_corr = px.imshow(corr_matrix, text_auto=".2f", aspect="auto", color_continuous_scale="RdBu_r", origin="lower")
     st.plotly_chart(fig_corr, use_container_width=True)
-    
+
+# ------------------------------------------
+# PHASE 5: MACHINE LEARNING MODEL
+# ------------------------------------------
+elif analysis_phase == "🔮 Churn Prediction Model":
+    st.header("🔮 Machine Learning Churn Predictor")
+    st.markdown("Enter the customer's profile and subscription details below to predict their likelihood of churning.")
+
+    # Load models
+    gbdt_model, lr_model, scaler, model_columns = load_models()
+
+    # Sidebar model selection
+    st.sidebar.header("⚙️ Model Settings")
+    selected_model_name = st.sidebar.selectbox("Choose Prediction Model", ["Optimized GBDT (High Recall)", "Logistic Regression (High Accuracy)"])
+    active_model = gbdt_model if "GBDT" in selected_model_name else lr_model
+
+    # Grouping inputs into logical sections using columns
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.subheader("🧑 Demographics")
+        gender = st.selectbox("Gender", ["Male", "Female"])
+        senior_citizen = st.selectbox("Senior Citizen?", ["No", "Yes"])
+        partner = st.selectbox("Has Partner?", ["No", "Yes"])
+        dependents = st.selectbox("Has Dependents?", ["No", "Yes"])
+
+    with col2:
+        st.subheader("📱 Services Subscribed")
+        phone_service = st.selectbox("Phone Service", ["No", "Yes"])
+        multiple_lines = st.selectbox("Multiple Lines", ["No", "Yes", "No phone service"])
+        internet_service = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
+        online_security = st.selectbox("Online Security", ["No", "Yes", "No internet service"])
+        online_backup = st.selectbox("Online Backup", ["No", "Yes", "No internet service"])
+        device_protection = st.selectbox("Device Protection", ["No", "Yes", "No internet service"])
+        tech_support = st.selectbox("Tech Support", ["No", "Yes", "No internet service"])
+        streaming_tv = st.selectbox("Streaming TV", ["No", "Yes", "No internet service"])
+        streaming_movies = st.selectbox("Streaming Movies", ["No", "Yes", "No internet service"])
+
+    with col3:
+        st.subheader("💳 Account & Billing")
+        contract = st.selectbox("Contract Type", ["Month-to-month", "One year", "Two year"])
+        paperless_billing = st.selectbox("Paperless Billing", ["No", "Yes"])
+        payment_method = st.selectbox("Payment Method", [
+            "Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"
+        ])
+        
+        st.markdown("---")
+        # Continuous Variables
+        tenure = st.slider("Tenure (Months)", min_value=0, max_value=72, value=12)
+        monthly_charges = st.number_input("Monthly Charges ($)", min_value=0.0, max_value=150.0, value=50.0)
+
+    # Prediction Logic
+    st.markdown("---")
+    if st.button("🔮 Predict Churn Risk", type="primary", use_container_width=True):
+        
+        # Gather inputs
+        input_data = {
+            'gender': gender,
+            'SeniorCitizen': 1 if senior_citizen == "Yes" else 0,
+            'Partner': partner,
+            'Dependents': dependents,
+            'tenure': tenure,
+            'PhoneService': phone_service,
+            'MultipleLines': multiple_lines,
+            'InternetService': internet_service,
+            'OnlineSecurity': online_security,
+            'OnlineBackup': online_backup,
+            'DeviceProtection': device_protection,
+            'TechSupport': tech_support,
+            'StreamingTV': streaming_tv,
+            'StreamingMovies': streaming_movies,
+            'Contract': contract,
+            'PaperlessBilling': paperless_billing,
+            'PaymentMethod': payment_method,
+            'MonthlyCharges': monthly_charges
+        }
+        
+        # Convert to DataFrame & Encode
+        input_df = pd.DataFrame([input_data])
+        
+        # THE FIX: We removed drop_first=True so the model correctly maps single-row inputs
+        input_df = pd.get_dummies(input_df, dtype=int)
+        
+        # Align columns
+        input_df = input_df.reindex(columns=model_columns, fill_value=0)
+        
+        # Scale
+        num_cols_to_scale = ['tenure', 'MonthlyCharges']
+        input_df[num_cols_to_scale] = scaler.transform(input_df[num_cols_to_scale])
+        
+        # Predict
+        prediction = active_model.predict(input_df)[0]
+        prediction_proba = active_model.predict_proba(input_df)[0][1]
+        
+        # Display
+        st.markdown("### 📊 Prediction Result")
+        
+        if prediction == 1:
+            st.error(f"🚨 **HIGH RISK**: This customer is likely to CHURN.")
+            st.write(f"**Churn Probability:** {prediction_proba * 100:.2f}%")
+            st.progress(float(prediction_proba))
+            st.warning("Recommendation: Offer a discount or contact them immediately with a retention campaign!")
+        else:
+            st.success(f"✅ **SAFE**: This customer is likely to RETAIN.")
+            st.write(f"**Churn Probability:** {prediction_proba * 100:.2f}%")
+            st.progress(float(prediction_proba))
+            st.info("Recommendation: Maintain standard communication. Good candidate for upselling.")
