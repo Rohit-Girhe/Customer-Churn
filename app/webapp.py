@@ -7,9 +7,6 @@ import plotly.express as px
 # ==========================================
 st.set_page_config(page_title="Telecom Churn Dashboard", page_icon="📊", layout="wide")
 
-# ==========================================
-# 2. DATA LOADING & PREPARATION
-# ==========================================
 @st.cache_data
 def load_data():
     file_path = r"D:\Customer-Churn\Dataset\churn_dataset_cleaned.csv"
@@ -17,12 +14,11 @@ def load_data():
 
 df = load_data()
 
-# Separate columns into categorical and numerical for dynamic dropdowns
 cat_cols = df.select_dtypes(include=['object']).columns.tolist()
 num_cols = df.select_dtypes(include=['int64', 'float64']).columns.tolist()
 
 # ==========================================
-# 3. SIDEBAR NAVIGATION
+# 2. SIDEBAR NAVIGATION
 # ==========================================
 st.sidebar.title("🧭 Navigation")
 st.sidebar.markdown("Select a phase of the analysis to explore:")
@@ -31,13 +27,8 @@ analysis_phase = st.sidebar.radio(
     "Go to:",
     ["Dataset Overview", "Univariate Analysis", "Bivariate Analysis", "Multivariate Analysis"]
 )
-
 st.sidebar.markdown("---")
-st.sidebar.info("💡 **Tip:** Use the dynamic dropdowns in each section to explore different variables on the fly!")
 
-# ==========================================
-# 4. MAIN DASHBOARD LOGIC
-# ==========================================
 st.title("📊 Modern Telecom Churn Dashboard")
 
 # ------------------------------------------
@@ -45,9 +36,7 @@ st.title("📊 Modern Telecom Churn Dashboard")
 # ------------------------------------------
 if analysis_phase == "Dataset Overview":
     st.header("1️⃣ Dataset Overview & Statistical Summary")
-    st.markdown("Before diving into visual analytics, explore the raw data and its statistical properties.")
     
-    # KPIs
     st.subheader("At a Glance")
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Customers", f"{len(df):,}")
@@ -57,17 +46,13 @@ if analysis_phase == "Dataset Overview":
     col4.metric("Avg Monthly Bill", f"${df['MonthlyCharges'].mean():.2f}")
     st.markdown("---")
     
-    # Tabs for Data and Stats
     tab1, tab2, tab3 = st.tabs(["🔍 View Dataset", "📈 Numerical Statistics", "🔠 Categorical Statistics"])
     
     with tab1:
-        st.markdown("### The Cleaned Dataset")
         st.dataframe(df, use_container_width=True)
     with tab2:
-        st.markdown("### Numerical Summary")
         st.dataframe(df.describe().T, use_container_width=True) 
     with tab3:
-        st.markdown("### Categorical Summary")
         st.dataframe(df.describe(include='object').T, use_container_width=True)
 
 # ------------------------------------------
@@ -75,9 +60,6 @@ if analysis_phase == "Dataset Overview":
 # ------------------------------------------
 elif analysis_phase == "Univariate Analysis":
     st.header("2️⃣ Univariate Analysis")
-    st.markdown("Explore the distribution of individual features across your customer base.")
-    
-    # Dynamic column selector
     selected_col = st.selectbox("Select a feature to analyze:", df.columns)
     
     col1, col2 = st.columns(2)
@@ -91,7 +73,7 @@ elif analysis_phase == "Univariate Analysis":
             fig_bar.update_layout(showlegend=False)
             st.plotly_chart(fig_bar, use_container_width=True)
             
-    else: # If numerical
+    else: 
         with col1:
             fig_hist = px.histogram(df, x=selected_col, nbins=30, title=f"Distribution of {selected_col}", color_discrete_sequence=['#42A5F5'])
             st.plotly_chart(fig_hist, use_container_width=True)
@@ -99,56 +81,73 @@ elif analysis_phase == "Univariate Analysis":
             fig_box = px.box(df, y=selected_col, title=f"Spread & Outliers of {selected_col}", color_discrete_sequence=['#FFA726'])
             st.plotly_chart(fig_box, use_container_width=True)
 
+    # --- DYNAMIC UNIVARIATE INSIGHTS ---
+    if selected_col == 'Contract':
+        st.warning("**💡 Stakeholder Insight:** Over half the customer base (55%) is on a Month-to-month contract. This represents a massive, highly volatile risk segment for the business.")
+    elif selected_col == 'tenure':
+        st.info("**💡 Stakeholder Insight:** Tenure is highly bimodal. We attract many new customers (0-5 months), but also have a solid base of fiercely loyal users (70+ months). The middle ground is hollow.")
+    elif selected_col == 'MonthlyCharges':
+        st.info("**💡 Stakeholder Insight:** A significant portion of the base subscribes to the absolute cheapest bare-bones plans (~$20/month).")
+    else:
+        st.caption(f"Showing univariate distribution for {selected_col}.")
+
 # ------------------------------------------
 # PHASE 3: BIVARIATE ANALYSIS
 # ------------------------------------------
 elif analysis_phase == "Bivariate Analysis":
     st.header("3️⃣ Bivariate Analysis")
-    st.markdown("Analyze the relationship between two different variables.")
-    
-    # User selects the type of relationship
-    biv_type = st.radio("Select Relationship Type to Explore:", 
-                        ["Categorical vs Categorical", "Categorical vs Numerical", "Numerical vs Numerical"], horizontal=True)
+    biv_type = st.radio("Select Relationship Type:", ["Categorical vs Categorical", "Categorical vs Numerical", "Numerical vs Numerical"], horizontal=True)
     st.markdown("---")
     
     if biv_type == "Categorical vs Categorical":
         col1, col2 = st.columns(2)
-        cat_feat1 = col1.selectbox("Select First Categorical Feature (X-axis):", cat_cols, index=cat_cols.index('Contract') if 'Contract' in cat_cols else 0)
-        cat_feat2 = col2.selectbox("Select Second Categorical Feature (Grouping):", cat_cols, index=cat_cols.index('Churn') if 'Churn' in cat_cols else 1)
+        cat_feat1 = col1.selectbox("X-axis (Feature):", cat_cols, index=cat_cols.index('Contract') if 'Contract' in cat_cols else 0)
+        cat_feat2 = col2.selectbox("Grouping (Target):", cat_cols, index=cat_cols.index('Churn') if 'Churn' in cat_cols else 1)
         
-        fig = px.histogram(df, x=cat_feat1, color=cat_feat2, barmode='group', text_auto=True, 
-                           title=f"Relationship between {cat_feat1} and {cat_feat2}")
+        fig = px.histogram(df, x=cat_feat1, color=cat_feat2, barmode='group', text_auto=True, title=f"{cat_feat1} vs {cat_feat2}")
         st.plotly_chart(fig, use_container_width=True)
+
+        # --- DYNAMIC CAT VS CAT INSIGHTS ---
+        if cat_feat1 == 'Contract' and cat_feat2 == 'Churn':
+            st.error("**🚨 The Contract Trap:** Month-to-month users have an alarming ~42.7% churn rate. **Recommendation:** Offer 'first month free' promotions to upgrade users to 1-Year or 2-Year contracts.")
+        elif cat_feat1 == 'PaymentMethod' and cat_feat2 == 'Churn':
+            st.warning("**⚠️ Billing Friction:** Electronic check users churn at over 45%. **Recommendation:** Nudge users toward automatic bank transfers with a $5 recurring discount.")
+        elif cat_feat1 == 'InternetService' and cat_feat2 == 'Churn':
+            st.warning("**⚠️ Infrastructure Risk:** Fiber Optic users have the highest churn rate among internet types. Investigate service outages or pricing misalignments immediately.")
 
     elif biv_type == "Categorical vs Numerical":
         col1, col2 = st.columns(2)
-        cat_feat = col1.selectbox("Select Categorical Feature (X-axis):", cat_cols)
-        num_feat = col2.selectbox("Select Numerical Feature (Y-axis):", num_cols)
+        cat_feat = col1.selectbox("Categorical Feature:", cat_cols)
+        num_feat = col2.selectbox("Numerical Feature:", num_cols)
         
-        fig = px.box(df, x=cat_feat, y=num_feat, color=cat_feat, 
-                     title=f"Distribution of {num_feat} grouped by {cat_feat}")
+        fig = px.box(df, x=cat_feat, y=num_feat, color=cat_feat, title=f"{num_feat} grouped by {cat_feat}")
         st.plotly_chart(fig, use_container_width=True)
+
+        # --- DYNAMIC CAT VS NUM INSIGHTS ---
+        if cat_feat == 'Churn' and num_feat == 'tenure':
+            st.success("**🎯 Retention Strategy:** The median tenure for churners is roughly 10 months. **Recommendation:** Implement a 'First-Year Loyalty Program' with milestone rewards to push them past the 12-month danger zone.")
+        elif cat_feat == 'InternetService' and num_feat == 'MonthlyCharges':
+            st.info("**💡 Pricing Insight:** Fiber Optic users pay the highest premium (median ~$90). Combined with their high churn rate, they are experiencing 'bill shock' without perceived value.")
 
     elif biv_type == "Numerical vs Numerical":
         col1, col2 = st.columns(2)
-        num_feat1 = col1.selectbox("Select First Numerical Feature (X-axis):", num_cols, index=0)
-        num_feat2 = col2.selectbox("Select Second Numerical Feature (Y-axis):", num_cols, index=1 if len(num_cols)>1 else 0)
+        num_feat1 = col1.selectbox("X-axis:", num_cols, index=0)
+        num_feat2 = col2.selectbox("Y-axis:", num_cols, index=1 if len(num_cols)>1 else 0)
         
-        # We will color it by Churn by default to make it insightful!
         color_target = 'Churn' if 'Churn' in cat_cols else None
-        
-        fig = px.scatter(df, x=num_feat1, y=num_feat2, color=color_target, opacity=0.6,
-                         title=f"Correlation between {num_feat1} and {num_feat2}")
+        fig = px.scatter(df, x=num_feat1, y=num_feat2, color=color_target, opacity=0.6, title=f"{num_feat1} vs {num_feat2}")
         st.plotly_chart(fig, use_container_width=True)
+
+        # --- DYNAMIC NUM VS NUM INSIGHTS ---
+        if num_feat1 == 'tenure' and num_feat2 == 'MonthlyCharges':
+            st.error("**🚨 High-Risk Profile:** Notice the concentration of Churn (red dots) in the top-left quadrant. Our highest flight risk is newly acquired customers (low tenure) on expensive plans (high charges).")
 
 # ------------------------------------------
 # PHASE 4: MULTIVARIATE ANALYSIS
 # ------------------------------------------
 elif analysis_phase == "Multivariate Analysis":
     st.header("4️⃣ Multivariate Analysis")
-    st.markdown("Discover complex mathematical correlations across multiple variables.")
     
-    # We create a temporary dataframe just for correlation to include the target variable
     corr_df = df.copy()
     if 'Churn' in corr_df.columns:
         corr_df['Churn_Num'] = corr_df['Churn'].map({'No': 0, 'Yes': 1})
@@ -158,14 +157,6 @@ elif analysis_phase == "Multivariate Analysis":
         
     corr_matrix = corr_df[cols_to_correlate].corr()
     
-    # Plotly Heatmap
-    fig_corr = px.imshow(corr_matrix, text_auto=".2f", aspect="auto", 
-                         color_continuous_scale="RdBu_r", origin="lower",
-                         title="Correlation Heatmap (Numerical Features + Target)")
+    fig_corr = px.imshow(corr_matrix, text_auto=".2f", aspect="auto", color_continuous_scale="RdBu_r", origin="lower")
     st.plotly_chart(fig_corr, use_container_width=True)
     
-    # Business insight box
-    st.info("""
-    **💡 Business Insight:** Look for highly correlated variables (close to 1 or -1). 
-    For example, high positive correlation between `tenure` and `TotalCharges` suggests Multicollinearity, which we must handle before building our Machine Learning model!
-    """)
