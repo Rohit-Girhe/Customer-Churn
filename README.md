@@ -1,7 +1,3 @@
-This README is designed to highlight the technical depth and business value of your project, making it ideal for your GitHub portfolio.
-
----
-
 # 📊 Modern Telecom Customer Churn Analysis & Prediction
 
 This project provides an end-to-end data science solution for identifying and predicting customer churn in the telecommunications industry. It features a comprehensive **exploratory data analysis (EDA)** and a **Streamlit-based web application** that allows stakeholders to predict churn risk for individual customers using trained Machine Learning models.
