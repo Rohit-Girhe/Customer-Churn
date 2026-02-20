@@ -191,8 +191,11 @@ elif analysis_phase == "🔮 Churn Prediction Model":
 
     # Sidebar model selection
     st.sidebar.header("⚙️ Model Settings")
-    selected_model_name = st.sidebar.selectbox("Choose Prediction Model", ["Optimized GBDT (High Recall)", "Logistic Regression (High Accuracy)"])
-    active_model = gbdt_model if "GBDT" in selected_model_name else lr_model
+    selected_model_name = st.sidebar.selectbox("Choose Prediction Model", [
+        "🏆 Gradient Boosting (Champion: Best F1 & Recall)", 
+        "⚖️ Logistic Regression (Balanced Alternative)"
+    ])
+    active_model = gbdt_model if "Gradient Boosting" in selected_model_name else lr_model
 
     # Grouping inputs into logical sections using columns
     col1, col2, col3 = st.columns(3)
@@ -207,14 +210,19 @@ elif analysis_phase == "🔮 Churn Prediction Model":
     with col2:
         st.subheader("📱 Services Subscribed")
         phone_service = st.selectbox("Phone Service", ["No", "Yes"])
-        multiple_lines = st.selectbox("Multiple Lines", ["No", "Yes", "No phone service"])
+        
+        # FIXED: Removed "No phone service"
+        multiple_lines = st.selectbox("Multiple Lines", ["No", "Yes"]) 
+        
         internet_service = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
-        online_security = st.selectbox("Online Security", ["No", "Yes", "No internet service"])
-        online_backup = st.selectbox("Online Backup", ["No", "Yes", "No internet service"])
-        device_protection = st.selectbox("Device Protection", ["No", "Yes", "No internet service"])
-        tech_support = st.selectbox("Tech Support", ["No", "Yes", "No internet service"])
-        streaming_tv = st.selectbox("Streaming TV", ["No", "Yes", "No internet service"])
-        streaming_movies = st.selectbox("Streaming Movies", ["No", "Yes", "No internet service"])
+        
+        # FIXED: Removed "No internet service" from all below
+        online_security = st.selectbox("Online Security", ["No", "Yes"])
+        online_backup = st.selectbox("Online Backup", ["No", "Yes"])
+        device_protection = st.selectbox("Device Protection", ["No", "Yes"])
+        tech_support = st.selectbox("Tech Support", ["No", "Yes"])
+        streaming_tv = st.selectbox("Streaming TV", ["No", "Yes"])
+        streaming_movies = st.selectbox("Streaming Movies", ["No", "Yes"])
 
     with col3:
         st.subheader("💳 Account & Billing")
