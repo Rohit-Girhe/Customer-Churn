@@ -15,7 +15,7 @@ def load_data():
     file_path = r"D:\Customer-Churn\Dataset\churn_dataset_cleaned.csv"
     return pd.read_csv(file_path)
 
-# Load the NEW Lightweight Models and Scaler
+# Load the NEW Lightweight Champion Model and Scaler
 @st.cache_resource
 def load_models():
     save_dir = r"D:\Customer-Churn\Models"
@@ -23,19 +23,13 @@ def load_models():
     with open(os.path.join(save_dir, 'churn_model_light_gbdt.pkl'), 'rb') as f:
         gbdt_model = pickle.load(f)
         
-    with open(os.path.join(save_dir, 'churn_model_light_lr.pkl'), 'rb') as f:
-        lr_model = pickle.load(f)
-        
-    with open(os.path.join(save_dir, 'churn_model_light_pure_lr.pkl'), 'rb') as f:
-        pure_lr_model = pickle.load(f)
-        
     with open(os.path.join(save_dir, 'scaler_light.pkl'), 'rb') as f:
         scaler = pickle.load(f)
         
     with open(os.path.join(save_dir, 'model_columns_light.pkl'), 'rb') as f:
         model_columns = pickle.load(f)
         
-    return gbdt_model, lr_model, pure_lr_model, scaler, model_columns
+    return gbdt_model, scaler, model_columns
 
 df = load_data()
 
@@ -189,23 +183,13 @@ elif analysis_phase == "🔮 Churn Prediction Model":
     st.header("🔮 Streamlined Churn Predictor")
     st.markdown("Enter the top 8 customer indicators below to predict their likelihood of churning.")
 
-    # Load models
-    gbdt_model, lr_model, pure_lr_model, scaler, model_columns = load_models()
+    # Load only the champion model
+    gbdt_model, scaler, model_columns = load_models()
 
-    # Sidebar model selection
+    # Clean Sidebar Badge instead of dropdown
     st.sidebar.header("⚙️ Model Settings")
-    selected_model_name = st.sidebar.selectbox("Choose Prediction Model", [
-        "🌍 Pure Logistic Regression (Most Realistic Probabilities)",
-        "🏆 Gradient Boosting (Champion: Best Overall Balance)", 
-        "⚖️ Logistic Regression (SMOTE - Aggressive Churn Catcher)"
-    ])
-    
-    if "Pure" in selected_model_name:
-        active_model = pure_lr_model
-    elif "Gradient" in selected_model_name:
-        active_model = gbdt_model
-    else:
-        active_model = lr_model
+    st.sidebar.success("🏆 Active Model: Gradient Boosting (Champion)")
+    active_model = gbdt_model
 
     # The New, Ultra-Clean 8-Feature UI
     col1, col2 = st.columns(2)

@@ -1,69 +1,67 @@
-# 📊 Modern Telecom Customer Churn Analysis & Prediction
+# 📊 Modern Telecom Churn Prediction & Analytics Dashboard
 
-This project provides an end-to-end data science solution for identifying and predicting customer churn in the telecommunications industry. It features a comprehensive **exploratory data analysis (EDA)** and a **Streamlit-based web application** that allows stakeholders to predict churn risk for individual customers using trained Machine Learning models.
+![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
+![Machine Learning](https://img.shields.io/badge/Machine%20Learning-Scikit--Learn-orange)
+![Deployment](https://img.shields.io/badge/Deployment-Streamlit-red)
+![Data Visualization](https://img.shields.io/badge/Data%20Visualization-Plotly-green)
 
-## 🚀 Live Dashboard Features
+## 📌 Project Overview
+Customer churn is a critical metric for telecommunication companies. Retaining an existing customer is significantly cheaper than acquiring a new one. This project is an end-to-end Data Science and Machine Learning solution designed to analyze telecom customer data, uncover actionable business insights, and predict the likelihood of customer churn. 
 
-The interactive dashboard is organized into five key phases:
+The final deliverable is a fully interactive, highly optimized **Streamlit Web Dashboard** that allows stakeholders to explore the data visually and predict individual customer churn risk in real-time using a streamlined, 8-question interface.
 
-* **Dataset Overview**: High-level metrics including total customers, overall churn rate, and statistical summaries of the dataset.
-* **Univariate Analysis**: Detailed distribution analysis of individual features like tenure, contract types, and monthly charges.
-* **Bivariate Analysis**: Deep dives into relationships, such as how contract types or payment methods directly correlate with churn.
-* **Multivariate Analysis**: A correlation matrix visualizing the strength of relationships between numerical variables and churn.
-* **Churn Prediction Model**: A real-time predictor where users can input customer demographics and service details to get an instant risk assessment.
+---
 
-## 🧠 Machine Learning Approach
+## 🏗️ Technical Stack
+* **Language:** Python
+* **Data Manipulation:** Pandas, NumPy
+* **Data Visualization:** Plotly Express, Seaborn, Matplotlib
+* **Machine Learning:** Scikit-Learn, Imbalanced-Learn (SMOTE)
+* **Web Deployment:** Streamlit
 
-The application utilizes two primary models to ensure robust predictions:
+---
 
-* **Gradient Boosting (Champion Model)**: Optimized for the best F1-score and recall to ensure high-risk customers are accurately identified.
-* **Logistic Regression**: Provides a balanced, interpretable alternative for risk assessment.
-* **Preprocessing**: Includes automated scaling for numerical features (tenure, charges) and one-hot encoding for categorical data to ensure model accuracy.
+## 🔬 The Data Science Pipeline
 
-## 🛠️ Tech Stack
+### 1. Data Cleaning & Feature Engineering
+* Handled missing values and standardized categorical text.
+* **Multicollinearity Fix:** Strictly dropped the `TotalCharges` feature, as it was highly correlated with `tenure` and `MonthlyCharges`, ensuring a mathematically sound model.
 
-* **Language**: Python
-* **Libraries**: Pandas, NumPy, Scikit-Learn, Imbalanced-Learn
-* **Visualization**: Plotly, Matplotlib, Seaborn
-* **Deployment**: Streamlit
+### 2. Advanced Feature Selection (Mutual Information)
+To ensure the final deployed application was fast, user-friendly, and resistant to overfitting, a rigorous statistical test was performed.
+* Applied **Mutual Information (MI)** to calculate the exact mathematical dependency between all 22 input features and the `Churn` target variable.
+* **The Result:** Sliced the dataset down by 60%, retaining only the **Top 8 Master Features** (`Contract`, `tenure`, `PaymentMethod`, `MonthlyCharges`, `InternetService`, `PaperlessBilling`, `Partner`, `Dependents`).
 
-## 📁 Project Structure
+### 3. Targeted Standardization & Class Balancing
+* Applied `StandardScaler` **strictly to continuous variables** (`tenure` and `MonthlyCharges`) to prevent distorting binary encoded categorical features. 
+* The original dataset was highly imbalanced (~73% Retained / 27% Churned). Applied **SMOTE (Synthetic Minority Over-sampling Technique)** strictly to the training data to create a perfectly balanced 50/50 dataset.
 
-```text
-├── Dataset/          # Raw and cleaned customer data
-├── Models/           # Saved .pkl files (Models, Scaler, Column mappings)
-├── NoteBooks/        # Jupyter notebooks for cleaning, EDA, and model building
-├── app/              # Streamlit web application source code
-└── requirements.txt  # Project dependencies
+### 4. Blind Algorithm Tournament
+To ensure a rigorously fair experiment, multiple algorithms were trained on the optimized 8-feature dataset and evaluated on an unseen test set. 
 
-```
+**🏆 The Champion Model:**
+* **Gradient Boosting (GBDT)** successfully defended its title as the most balanced model.
+* **F1-Score:** ~0.62 
+* **Recall:** ~0.78 (Successfully catches nearly 80% of all churning customers)
+* *Note: Despite dropping 14 columns of data, the model retained over 95% of its predictive power compared to the heavy 22-feature baseline, proving it is highly optimized for production.*
 
-## ⚙️ Installation & Usage
+---
 
-1. **Clone the repository**:
+## 💻 Streamlit Web Application
+The predictive models and EDA were deployed into a sleek, multipage Streamlit dashboard. 
+
+### Dashboard Features:
+1. **Dataset Overview:** High-level metrics and statistical summaries.
+2. **Univariate Analysis:** Interactive distributions of individual features with strategic business insights.
+3. **Bivariate Analysis:** Cross-feature comparisons (e.g., Contract Type vs. Churn Rate) to identify high-risk segments.
+4. **Multivariate Analysis:** Correlation heatmaps to map feature relationships.
+5. **🔮 Streamlined Churn Predictor:** A real-time inference engine. By utilizing our 8-feature lightweight model, sales reps and customer service agents only need to input the most critical data points to get an instant, highly accurate Churn Probability Score.
+
+---
+
+## 🚀 How to Run Locally
+
+**1. Clone the repository**
 ```bash
-git clone https://github.com/[Rohit-Girhe]/Customer-Churn.git
-
-```
-
-
-2. **Install dependencies**:
-```bash
-pip install -r requirements.txt
-
-```
-
-
-3. **Run the Dashboard**:
-```bash
-streamlit run app/webapp.py
-
-```
-
-
-
-## 💡 Key Business Insights Derived
-
-* **The Contract Trap**: Month-to-month users exhibit a significantly higher churn rate (~42.7%) compared to long-term contract holders.
-* **Billing Friction**: Customers using electronic checks as a payment method are at a higher risk, churning at rates over 45%.
-* **Retention Strategy**: Analysis suggests implementing a "First-Year Loyalty Program" as the median tenure for churners is approximately 10 months.
+git clone [https://github.com/Rohit-Girhe/telecom-churn-dashboard.git](https://github.com/Rohit-Girhe/telecom-churn-dashboard.git)
+cd telecom-churn-dashboard
