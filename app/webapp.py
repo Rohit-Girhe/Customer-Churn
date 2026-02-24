@@ -15,24 +15,27 @@ def load_data():
     file_path = r"D:\Customer-Churn\Dataset\churn_dataset_cleaned.csv"
     return pd.read_csv(file_path)
 
-# Load the Saved Models and Scaler (Cached so it only loads once)
+# Load the NEW Lightweight Models and Scaler
 @st.cache_resource
 def load_models():
     save_dir = r"D:\Customer-Churn\Models"
     
-    with open(os.path.join(save_dir, 'churn_model_gbdt.pkl'), 'rb') as f:
+    with open(os.path.join(save_dir, 'churn_model_light_gbdt.pkl'), 'rb') as f:
         gbdt_model = pickle.load(f)
         
-    with open(os.path.join(save_dir, 'churn_model_lr.pkl'), 'rb') as f:
+    with open(os.path.join(save_dir, 'churn_model_light_lr.pkl'), 'rb') as f:
         lr_model = pickle.load(f)
         
-    with open(os.path.join(save_dir, 'scaler.pkl'), 'rb') as f:
+    with open(os.path.join(save_dir, 'churn_model_light_pure_lr.pkl'), 'rb') as f:
+        pure_lr_model = pickle.load(f)
+        
+    with open(os.path.join(save_dir, 'scaler_light.pkl'), 'rb') as f:
         scaler = pickle.load(f)
         
-    with open(os.path.join(save_dir, 'model_columns.pkl'), 'rb') as f:
+    with open(os.path.join(save_dir, 'model_columns_light.pkl'), 'rb') as f:
         model_columns = pickle.load(f)
         
-    return gbdt_model, lr_model, scaler, model_columns
+    return gbdt_model, lr_model, pure_lr_model, scaler, model_columns
 
 df = load_data()
 
@@ -180,51 +183,40 @@ elif analysis_phase == "Multivariate Analysis":
     st.plotly_chart(fig_corr, use_container_width=True)
 
 # ------------------------------------------
-# PHASE 5: MACHINE LEARNING MODEL
+# PHASE 5: MACHINE LEARNING MODEL (LIGHTWEIGHT)
 # ------------------------------------------
 elif analysis_phase == "🔮 Churn Prediction Model":
-    st.header("🔮 Machine Learning Churn Predictor")
-    st.markdown("Enter the customer's profile and subscription details below to predict their likelihood of churning.")
+    st.header("🔮 Streamlined Churn Predictor")
+    st.markdown("Enter the top 8 customer indicators below to predict their likelihood of churning.")
 
     # Load models
-    gbdt_model, lr_model, scaler, model_columns = load_models()
+    gbdt_model, lr_model, pure_lr_model, scaler, model_columns = load_models()
 
     # Sidebar model selection
     st.sidebar.header("⚙️ Model Settings")
     selected_model_name = st.sidebar.selectbox("Choose Prediction Model", [
-        "🏆 Gradient Boosting (Champion: Best F1 & Recall)", 
-        "⚖️ Logistic Regression (Balanced Alternative)"
+        "🌍 Pure Logistic Regression (Most Realistic Probabilities)",
+        "🏆 Gradient Boosting (Champion: Best Overall Balance)", 
+        "⚖️ Logistic Regression (SMOTE - Aggressive Churn Catcher)"
     ])
-    active_model = gbdt_model if "Gradient Boosting" in selected_model_name else lr_model
+    
+    if "Pure" in selected_model_name:
+        active_model = pure_lr_model
+    elif "Gradient" in selected_model_name:
+        active_model = gbdt_model
+    else:
+        active_model = lr_model
 
-    # Grouping inputs into logical sections using columns
-    col1, col2, col3 = st.columns(3)
+    # The New, Ultra-Clean 8-Feature UI
+    col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("🧑 Demographics")
-        gender = st.selectbox("Gender", ["Male", "Female"])
-        senior_citizen = st.selectbox("Senior Citizen?", ["No", "Yes"])
+        st.subheader("🧑 Demographics & Services")
         partner = st.selectbox("Has Partner?", ["No", "Yes"])
         dependents = st.selectbox("Has Dependents?", ["No", "Yes"])
+        internet_service = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
 
     with col2:
-        st.subheader("📱 Services Subscribed")
-        phone_service = st.selectbox("Phone Service", ["No", "Yes"])
-        
-        # FIXED: Removed "No phone service"
-        multiple_lines = st.selectbox("Multiple Lines", ["No", "Yes"]) 
-        
-        internet_service = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
-        
-        # FIXED: Removed "No internet service" from all below
-        online_security = st.selectbox("Online Security", ["No", "Yes"])
-        online_backup = st.selectbox("Online Backup", ["No", "Yes"])
-        device_protection = st.selectbox("Device Protection", ["No", "Yes"])
-        tech_support = st.selectbox("Tech Support", ["No", "Yes"])
-        streaming_tv = st.selectbox("Streaming TV", ["No", "Yes"])
-        streaming_movies = st.selectbox("Streaming Movies", ["No", "Yes"])
-
-    with col3:
         st.subheader("💳 Account & Billing")
         contract = st.selectbox("Contract Type", ["Month-to-month", "One year", "Two year"])
         paperless_billing = st.selectbox("Paperless Billing", ["No", "Yes"])
@@ -232,47 +224,38 @@ elif analysis_phase == "🔮 Churn Prediction Model":
             "Electronic check", "Mailed check", "Bank transfer (automatic)", "Credit card (automatic)"
         ])
         
-        st.markdown("---")
-        # Continuous Variables
+    st.markdown("---")
+    
+    col3, col4 = st.columns(2)
+    with col3:
         tenure = st.slider("Tenure (Months)", min_value=0, max_value=72, value=12)
+    with col4:
         monthly_charges = st.number_input("Monthly Charges ($)", min_value=0.0, max_value=150.0, value=50.0)
 
     # Prediction Logic
     st.markdown("---")
     if st.button("🔮 Predict Churn Risk", type="primary", use_container_width=True):
         
-        # Gather inputs
+        # Gather strictly the 8 inputs
         input_data = {
-            'gender': gender,
-            'SeniorCitizen': 1 if senior_citizen == "Yes" else 0,
-            'Partner': partner,
-            'Dependents': dependents,
-            'tenure': tenure,
-            'PhoneService': phone_service,
-            'MultipleLines': multiple_lines,
-            'InternetService': internet_service,
-            'OnlineSecurity': online_security,
-            'OnlineBackup': online_backup,
-            'DeviceProtection': device_protection,
-            'TechSupport': tech_support,
-            'StreamingTV': streaming_tv,
-            'StreamingMovies': streaming_movies,
             'Contract': contract,
-            'PaperlessBilling': paperless_billing,
+            'tenure': tenure,
             'PaymentMethod': payment_method,
-            'MonthlyCharges': monthly_charges
+            'MonthlyCharges': monthly_charges,
+            'InternetService': internet_service,
+            'PaperlessBilling': paperless_billing,
+            'Partner': partner,
+            'Dependents': dependents
         }
         
         # Convert to DataFrame & Encode
         input_df = pd.DataFrame([input_data])
-        
-        # THE FIX: We removed drop_first=True so the model correctly maps single-row inputs
         input_df = pd.get_dummies(input_df, dtype=int)
         
-        # Align columns
+        # Align columns to perfectly match the 8-feature training data
         input_df = input_df.reindex(columns=model_columns, fill_value=0)
         
-        # Scale
+        # Scale continuous features
         num_cols_to_scale = ['tenure', 'MonthlyCharges']
         input_df[num_cols_to_scale] = scaler.transform(input_df[num_cols_to_scale])
         
@@ -287,7 +270,7 @@ elif analysis_phase == "🔮 Churn Prediction Model":
             st.error(f"🚨 **HIGH RISK**: This customer is likely to CHURN.")
             st.write(f"**Churn Probability:** {prediction_proba * 100:.2f}%")
             st.progress(float(prediction_proba))
-            st.warning("Recommendation: Offer a discount or contact them immediately with a retention campaign!")
+            st.warning("Recommendation: Offer a discount or migrate them away from month-to-month/electronic checks!")
         else:
             st.success(f"✅ **SAFE**: This customer is likely to RETAIN.")
             st.write(f"**Churn Probability:** {prediction_proba * 100:.2f}%")
